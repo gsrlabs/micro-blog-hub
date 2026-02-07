@@ -1,0 +1,29 @@
+# config/config.yml
+app:
+  port: 8040
+  mode: "debug"
+
+database:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  name: "auth_db"
+  sslmode: "disable"
+  max_conns: 5
+  min_conns: 1
+
+migrations:
+  path: "./migrations"
+  auto: true
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expiration_hours: 24
+
+logging:
+  level: "debug"
+
+test:
+  db_host: localhost
+  migrations_path: ../../migrations
+  handler_migrations_path: ../migrations
