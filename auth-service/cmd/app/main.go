@@ -41,7 +41,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	logger, err := logger.New(cfg.Logging.Level)
+	logger, err := logger.New(cfg.Logging.Level, cfg.App.Mode)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func run(ctx context.Context) error {
 
 	auth := r.Group("/auth")
 	auth.POST("", authHandler.Create)
-	//auth.GET("/:id", authHandler.Get)
+	auth.GET("/search", authHandler.GetByEmail)
 	//auth.PUT("/:id", authHandler.Update)
 	//auth.DELETE("/:id", authHandler.Delete)
 	//auth.GET("", authHandler.List)
