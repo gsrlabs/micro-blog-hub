@@ -2,66 +2,44 @@ package model
 
 import (
 	"regexp"
-	"strings"
-	
+
 	"github.com/go-playground/validator/v10"
 )
 
-// Validate is a global instance of the validator used to check struct tags across the application.
-var Validate *validator.Validate
+// Выносим регулярное выражение в переменную уровня пакета.
+// MustCompile вызовет панику при старте, если регулярка кривая (это хорошо для отлова ошибок).
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
-// init initializes the global validator and registers custom validation rules.
-func init() {
-	Validate = validator.New()
-	//_ = Validate.RegisterValidation("email", validateEmail)
+// Validator - обертка над библиотекой валидации
+type Validator struct {
+	validate *validator.Validate
 }
 
+// NewValidator создает новый экземпляр
+func NewValidator() *Validator {
+	v := validator.New()
+	
+	// Регистрируем наш кастомный валидатор
+	// Назовем его "strict_email", чтобы отличать от встроенного
+	_ = v.RegisterValidation("strict_email", validateEmail)
+	
+	return &Validator{validate: v}
+}
+
+// ValidateStruct - метод для проверки структур
+func (v *Validator) ValidateStruct(s interface{}) error {
+	return v.validate.Struct(s)
+}
+
+// validateEmail - оптимизированная функция
 func validateEmail(fl validator.FieldLevel) bool {
-	value := fl.Field().String()
-
-	// 1. Базовая проверка длины
-    if len(value) < 3 || len(value) > 254 {
-        return false
-    }
+	email := fl.Field().String()
     
-    // 2. Проверка на наличие символа @
-    atIndex := strings.Index(value, "@")
-    if atIndex == -1 || atIndex == 0 || atIndex == len(value)-1 {
-        return false
-    }
-    
-    // 3. Разделяем на локальную часть и домен
-    localPart := value[:atIndex]
-    domainPart := value[atIndex+1:]
-    
-    // 4. Проверка локальной части (до @)
-    if len(localPart) > 64 {
-        return false
-    }
-    
-    // 5. Проверка доменной части
-    if len(domainPart) > 253 {
-        return false
-    }
-    
-    // 6. Регулярное выражение для основной валидации
-    pattern := `^[a-zA-Z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`
-    
-    re := regexp.MustCompile(pattern)
-    if !re.MatchString(value) {
-        return false
-    }
-    
-    // 7. Проверка, что домен имеет хотя бы одну точку
-    if !strings.Contains(domainPart, ".") {
-        return false
+	// 1. Быстрая проверка длины (RFC 5321)
+	if len(email) < 3 || len(email) > 254 {
+		return false
 	}
-    // 8. Проверка, что последняя часть домена не слишком короткая
-    lastDotIndex := strings.LastIndex(domainPart, ".")
-    if lastDotIndex == -1 || len(domainPart[lastDotIndex+1:]) < 2 {
-        return false
-    }
-    
-    return true
 
+	// 2. Проверка регулярным выражением (уже скомпилированным!)
+	return emailRegex.MatchString(email)
 }

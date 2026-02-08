@@ -3,50 +3,32 @@ BINARY_NAME=auth-service
 MAIN_PATH=auth-service/cmd/app/main.go
 
 # .PHONY указывает, что это не файлы, а команды
-.PHONY: all build run test clean swag docker-up docker-down docker-logs lint
+.PHONY: all test clean up down logs lint db-shell info
 
-# По умолчанию (если просто написать 'make') выполнится build
-all: build
+# По умолчанию (если просто написать 'make') выполнится info
+all: info
 
-# 🏗 Сборка приложения
-build:
-	@echo "Building application..."
-	go build -o bin/$(BINARY_NAME) $(MAIN_PATH)
-
-# 🚀 Запуск локально (без Докера)
-run:
-	@echo "Running application..."
-	go run $(MAIN_PATH)
-
-# 🧪 Запуск всех тестов (Unit + Integration)
 test:
 	@echo "Running tests..."
 	go test -v -p 1 ./...
 
-
-# 🧹 Очистка (удаление бинарников и временных файлов)
-clean:
-	@echo "Cleaning up..."
-	go clean
-	rm -rf bin/
-
 # 🐳 Docker: Поднять контейнеры
-docker-up:
+up:
 	@echo "Starting Docker containers..."
 	docker compose up -d
 
-# 🐳 Docker: Поднять контейнеры (с пересборкой)
-docker-rebuild:
-	@echo "Build and starting Docker containers..."
-	docker compose up --build -d
-
 # 🛑 Docker: Остановить контейнеры
-docker-down:
+down:
 	@echo "Stopping Docker containers..."
 	docker compose down
 
+# 🐳 Docker: Поднять контейнеры (с пересборкой)
+rebuild:
+	@echo "Build and starting Docker containers..."
+	docker compose up --build -d
+
 # 📜 Docker: Посмотреть логи
-docker-logs:
+logs:
 	docker compose logs -f
 
 # 🔍 Линтер (проверка кода, если установлен golangci-lint)
@@ -55,4 +37,14 @@ lint:
 
 # 🔌 Подключиться к БД (psql) внутри контейнера
 db-shell:
-	docker compose exec postgres psql -U postgres -d subscriptions
+	docker compose exec postgres psql -U postgres -d auth_db
+
+info:
+	@echo "Введите следующие команды:"
+	@echo "make up - Поднять контейнеры"
+	@echo "make down - Остановить контейнеры"
+	@echo "make rebuild - Поднять контейнеры (с пересборкой)"
+	@echo "make logs - Посмотреть логи"
+	@echo "make lint - Запустить линтер"
+	@echo "make db-shell - Подключиться к БД"
+	@echo "make test - Запустить тесты"
