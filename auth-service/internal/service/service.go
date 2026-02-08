@@ -13,6 +13,7 @@ import (
 
 type AuthService interface{
 	Register(ctx context.Context, req *model.CreateUserRequest) (uuid.UUID, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 }
 
@@ -47,6 +48,16 @@ func (s *authService) Register(ctx context.Context, req *model.CreateUserRequest
 
 	s.logger.Info("user registered", zap.String("id", id.String()), zap.String("email", user.Email))
 	return id, nil
+}
+
+func (s *authService) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	user, err:= s.repo.GetByID(ctx, id)
+	if err != nil{
+		return nil, err
+	}
+
+	s.logger.Info("user found", zap.String("username", user.ID.String()), zap.String("id", id.String()))
+	return user, nil
 }
 
 func (s *authService) GetByEmail(ctx context.Context, email string) (*model.User, error) {

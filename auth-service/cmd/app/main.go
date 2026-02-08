@@ -61,7 +61,7 @@ func run(ctx context.Context) error {
 	authService := service.NewAuthService(authRepo, logger)
 
 	// 4️⃣ Handler
-	authHandler := handler.NewAuthHandler(authService, logger)
+	h := handler.NewAuthHandler(authService, logger)
 
 	// Устанавливаем режим работы Gin
     if cfg.App.Mode == "release" {
@@ -80,11 +80,14 @@ func run(ctx context.Context) error {
 	})
 
 	auth := r.Group("/auth")
-	auth.POST("", authHandler.Create)
-	auth.GET("/search", authHandler.GetByEmail)
-	//auth.PUT("/:id", authHandler.Update)
-	//auth.DELETE("/:id", authHandler.Delete)
-	//auth.GET("", authHandler.List)
+	auth.POST("", h.Create)
+
+	user := r.Group("/user")
+	user.GET("/:id", h.GetByID)
+	user.GET("/search", h.GetByEmail)
+	//user.PUT("/:id", h.Update)
+	//user.DELETE("/:id", h.Delete)
+	//user.GET("", h.List)
 
 	server := &http.Server{
 		Addr:    ":" + cfg.App.Port,
