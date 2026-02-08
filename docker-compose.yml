@@ -4,7 +4,7 @@ services:
     container_name: auth_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-auth_service}
+      POSTGRES_DB: ${DB_NAME:-auth_db}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
       TZ: ${TIME_ZONE}
@@ -25,7 +25,14 @@ services:
     ports:
       - "${APP_PORT:-8040}:8040"
     environment:
+      - APP_PORT=${APP_PORT}
+      - DB_HOST=${DB_USER:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-password123}
+      - DB_NAME=${DB_NAME:-auth_db}
+      - DB_SSLMODE=disable
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
