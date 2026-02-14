@@ -7,7 +7,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/app
 
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata
+ARG TIME_ZONE=UTC
+ENV TZ=${TIME_ZONE}
+RUN apk --no-cache add ca-certificates tzdata && \
+	cp /usr/share/zoneinfo/${TZ} /etc/localtime && \
+	echo ${TZ} > /etc/timezone
 WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrations ./migrations

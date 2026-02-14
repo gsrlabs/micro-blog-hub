@@ -43,3 +43,16 @@ type UserClaims struct {
 	Username string    `json:"username"`
 	jwt.RegisteredClaims
 }
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
+}
+
+type ChangeProfileRequest struct {
+	NewUsername string `json:"new_username" validate:"required,min=2,max=50"`
+}
+
+type ChangeEmailRequest struct {
+	NewEmail string `json:"new_email" validate:"required,strict_email"` 
+}
