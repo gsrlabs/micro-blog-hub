@@ -30,6 +30,12 @@ type UserResponse struct {
 	UpdatedAt string    `json:"updated_at"`
 }
 
+type UsersResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+}
 
 // LoginRequest - то, что шлет клиент
 type LoginRequest struct {

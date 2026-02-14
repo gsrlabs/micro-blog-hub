@@ -20,6 +20,7 @@ type AuthRepository interface {
 	UpdateEmail(ctx context.Context, id uuid.UUID, email string) error
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newHash string) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	GetUsers(ctx context.Context, limit, offset int) ([]*model.User, error)
 }
 
 type authRepo struct {
@@ -153,4 +154,29 @@ func (r *authRepo) Delete(ctx context.Context, id uuid.UUID) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *authRepo) GetUsers(ctx context.Context, limit, offset int) ([]*model.User, error) {
+	query := `
+		SELECT id, username, email, created_at, updated_at 
+		FROM users
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]*model.User, 0)
+    for rows.Next() {
+        var u model.User
+        if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt); err != nil {
+            return nil, err
+        }
+        result = append(result, &u)
+    }
+    return result, nil
 }

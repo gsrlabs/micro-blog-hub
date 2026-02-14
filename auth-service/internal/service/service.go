@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,7 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService interface{
+type AuthService interface {
 	Register(ctx context.Context, req *model.CreateUserRequest) (uuid.UUID, error)
 	Login(ctx context.Context, req *model.LoginRequest) (string, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*model.User, error)
@@ -23,11 +24,12 @@ type AuthService interface{
 	ChangeProfile(ctx context.Context, userID uuid.UUID, req *model.ChangeProfileRequest) error
 	ChangeEmail(ctx context.Context, userID uuid.UUID, req *model.ChangeEmailRequest) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, req *model.ChangePasswordRequest) error
-	Delete(ctx context.Context, userID uuid.UUID) (error)
+	Delete(ctx context.Context, userID uuid.UUID) error
+	GetUsers(ctx context.Context, limit, offset int) ([]*model.User, error)
 }
 
 type authService struct {
-	repo repository.AuthRepository
+	repo   repository.AuthRepository
 	logger *zap.Logger
 	cfg    *config.Config
 }
@@ -78,7 +80,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 
 	// 3. Генерируем JWT токен
 	expirationTime := time.Now().Add(time.Duration(s.cfg.JWT.ExpirationHours) * time.Hour)
-	
+
 	claims := &model.UserClaims{
 		UserID:   user.ID,
 		Username: user.Username,
@@ -90,7 +92,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	
+
 	// Подписываем токен секретным ключом
 	tokenString, err := token.SignedString([]byte(s.cfg.JWT.Secret))
 	if err != nil {
@@ -103,8 +105,8 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 }
 
 func (s *authService) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
-	user, err:= s.repo.GetByID(ctx, id)
-	if err != nil{
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -113,8 +115,8 @@ func (s *authService) GetByID(ctx context.Context, id uuid.UUID) (*model.User, e
 }
 
 func (s *authService) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	user, err:= s.repo.GetByEmail(ctx, email)
-	if err != nil{
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
 		return nil, err
 	}
 
@@ -123,39 +125,39 @@ func (s *authService) GetByEmail(ctx context.Context, email string) (*model.User
 }
 
 func (s *authService) ChangeProfile(ctx context.Context, userID uuid.UUID, req *model.ChangeProfileRequest) error {
-    // Вызываем правильный метод репозитория
-    err := s.repo.UpdateProfile(ctx, userID, req.NewUsername)
-    if err != nil {
+	// Вызываем правильный метод репозитория
+	err := s.repo.UpdateProfile(ctx, userID, req.NewUsername)
+	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateUsername) {
-            return err 
-        }
-        if errors.Is(err, repository.ErrNotFound) {
-            return err
-        }
-        s.logger.Error("failed to update profile in db", zap.Error(err))
-        return fmt.Errorf("internal error")
-    }
+			return err
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return err
+		}
+		s.logger.Error("failed to update profile in db", zap.Error(err))
+		return fmt.Errorf("internal error")
+	}
 
-    s.logger.Info("profile changed successfully", zap.String("user_id", userID.String()), zap.String("new_username", req.NewUsername))
-    return nil
+	s.logger.Info("profile changed successfully", zap.String("user_id", userID.String()), zap.String("new_username", req.NewUsername))
+	return nil
 }
 
 func (s *authService) ChangeEmail(ctx context.Context, userID uuid.UUID, req *model.ChangeEmailRequest) error {
-    // Вызываем правильный метод репозитория
-    err := s.repo.UpdateEmail(ctx, userID, req.NewEmail)
-    if err != nil {
+	// Вызываем правильный метод репозитория
+	err := s.repo.UpdateEmail(ctx, userID, req.NewEmail)
+	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateEmail) {
-            return err 
-        }
-        if errors.Is(err, repository.ErrNotFound) {
-            return err
-        }
-        s.logger.Error("failed to update email in db", zap.Error(err))
-        return fmt.Errorf("internal error")
-    }
+			return err
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			return err
+		}
+		s.logger.Error("failed to update email in db", zap.Error(err))
+		return fmt.Errorf("internal error")
+	}
 
-    s.logger.Info("email changed successfully", zap.String("user_id", userID.String()), zap.String("new_email", req.NewEmail))
-    return nil
+	s.logger.Info("email changed successfully", zap.String("user_id", userID.String()), zap.String("new_email", req.NewEmail))
+	return nil
 }
 
 func (s *authService) ChangePassword(ctx context.Context, userID uuid.UUID, req *model.ChangePasswordRequest) error {
@@ -190,12 +192,22 @@ func (s *authService) ChangePassword(ctx context.Context, userID uuid.UUID, req 
 	return nil
 }
 
-func (s *authService) Delete(ctx context.Context, userID uuid.UUID) (error) {
-	err:= s.repo.Delete(ctx, userID)
-	if err != nil{
+func (s *authService) Delete(ctx context.Context, userID uuid.UUID) error {
+	err := s.repo.Delete(ctx, userID)
+	if err != nil {
 		return err
 	}
 
 	s.logger.Info("user has been deleted successfully", zap.String("userID", userID.String()))
-	return  nil
+	return nil
+}
+
+func (s *authService) GetUsers(ctx context.Context, limit, offset int) ([]*model.User, error) {
+	users, err := s.repo.GetUsers(ctx, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Info("users found", zap.String("count=", strconv.Itoa(len(users))))
+	return users, nil
 }
