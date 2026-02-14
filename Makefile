@@ -1,50 +1,66 @@
+# Переменные
 BINARY_NAME=auth-service
-# Путь к точке входа
 MAIN_PATH=auth-service/cmd/app/main.go
+MIGRATIONS_DIR=auth-service/migrations
+DB_DSN="postgres://postgres:password123@localhost:5432/auth_db?sslmode=disable"
 
-# .PHONY указывает, что это не файлы, а команды
-.PHONY: all test clean up down logs lint db-shell info
+.PHONY: all test clean up down rebuild logs lint db-shell migrate-status migrate-new info
 
-# По умолчанию (если просто написать 'make') выполнится info
 all: info
 
+# --- Разработка ---
 test:
 	@echo "Running tests..."
 	go test -v -p 1 ./...
 
-# 🐳 Docker: Поднять контейнеры
+lint:
+	@echo "Running linter..."
+	golangci-lint run ./...
+
+clean:
+	@echo "Cleaning binaries..."
+	rm -f $(BINARY_NAME)
+	go clean
+
+# --- Docker ---
 up:
 	@echo "Starting Docker containers..."
 	docker compose up -d
 
-# 🛑 Docker: Остановить контейнеры
 down:
 	@echo "Stopping Docker containers..."
 	docker compose down
 
-# 🐳 Docker: Поднять контейнеры (с пересборкой)
 rebuild:
-	@echo "Build and starting Docker containers..."
+	@echo "Rebuilding and starting..."
 	docker compose up --build -d
 
-# 📜 Docker: Посмотреть логи
 logs:
+	@echo "Showing logs (press Ctrl+C to stop)..."
 	docker compose logs -f
 
-# 🔍 Линтер (проверка кода, если установлен golangci-lint)
-lint:
-	golangci-lint run
-
-# 🔌 Подключиться к БД (psql) внутри контейнера
+# --- База данных ---
 db-shell:
+	@echo "Connecting to database..."
 	docker compose exec postgres psql -U postgres -d auth_db
 
+# Показать статус миграций (нужен установленный goose локально)
+migrate-status:
+	goose -dir $(MIGRATIONS_DIR) postgres $(DB_DSN) status
+
+# Создать новую миграцию: make migrate-new name=add_users_table
+migrate-new:
+	@if [ -z "$(name)" ]; then echo "Error: 'name' is required. Example: make migrate-new name=init"; exit 1; fi
+	goose -dir $(MIGRATIONS_DIR) create $(name) sql
+
+# --- Помощь ---
 info:
-	@echo "Введите следующие команды:"
-	@echo "make up - Поднять контейнеры"
-	@echo "make down - Остановить контейнеры"
-	@echo "make rebuild - Поднять контейнеры (с пересборкой)"
-	@echo "make logs - Посмотреть логи"
-	@echo "make lint - Запустить линтер"
-	@echo "make db-shell - Подключиться к БД"
-	@echo "make test - Запустить тесты"
+	@echo "Доступные команды:"
+	@echo "  make up           - Поднять проект в Docker"
+	@echo "  make down         - Остановить проект"
+	@echo "  make rebuild      - Пересобрать и запустить"
+	@echo "  make logs         - Логи контейнеров"
+	@echo "  make test         - Запустить тесты"
+	@echo "  make db-shell     - Зайти в консоль PSQL"
+	@echo "  make migrate-new  - Создать миграцию (нужно name=имя)"
+	@echo "  make clean        - Удалить временные файлы"
