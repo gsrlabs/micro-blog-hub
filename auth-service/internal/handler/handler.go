@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -184,76 +185,76 @@ func (h *AuthHandler) GetByEmail(c *gin.Context) {
 
 // PUT /user/profile
 func (h *AuthHandler) ChangeProfile(c *gin.Context) {
-    userIDVal, exists := c.Get("userID")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
-    userID := userIDVal.(uuid.UUID)
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
 
-    var req model.ChangeProfileRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-        return // Добавили return!
-    }
+	var req model.ChangeProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return // Добавили return!
+	}
 
-    if err := h.validator.ValidateStruct(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
-        return
-    }
+	if err := h.validator.ValidateStruct(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
+		return
+	}
 
-    err := h.service.ChangeProfile(c.Request.Context(), userID, &req)
-    if err != nil {
+	err := h.service.ChangeProfile(c.Request.Context(), userID, &req)
+	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateUsername) {
-            c.JSON(http.StatusConflict, gin.H{"error": "username already taken"})
-            return
-        }
-        if errors.Is(err, repository.ErrNotFound) {
-            c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-            return
-        }
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change profile"})
-        return
-    }
+			c.JSON(http.StatusConflict, gin.H{"error": "username already taken"})
+			return
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change profile"})
+		return
+	}
 
-    c.JSON(http.StatusOK, gin.H{"message": "profile updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "profile updated successfully"})
 }
 
 // PUT /user/email
 func (h *AuthHandler) ChangeEmail(c *gin.Context) {
-    userIDVal, exists := c.Get("userID")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
-    userID := userIDVal.(uuid.UUID)
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
 
-    var req model.ChangeEmailRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-        return // Добавили return!
-    }
+	var req model.ChangeEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return // Добавили return!
+	}
 
-    if err := h.validator.ValidateStruct(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
-        return
-    }
+	if err := h.validator.ValidateStruct(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
+		return
+	}
 
-    err := h.service.ChangeEmail(c.Request.Context(), userID, &req)
-    if err != nil {
+	err := h.service.ChangeEmail(c.Request.Context(), userID, &req)
+	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateEmail) {
-            c.JSON(http.StatusConflict, gin.H{"error": "email already taken"})
-            return
-        }
-        if errors.Is(err, repository.ErrNotFound) {
-            c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-            return
-        }
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change email"})
-        return
-    }
+			c.JSON(http.StatusConflict, gin.H{"error": "email already taken"})
+			return
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change email"})
+		return
+	}
 
-    c.JSON(http.StatusOK, gin.H{"message": "email updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "email updated successfully"})
 }
 
 // PUT /user/password
@@ -314,4 +315,24 @@ func (h *AuthHandler) Delete(c *gin.Context) {
 	}
 	c.SetCookie("token", "", -1, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"message": "user has been deleted successfully"})
+}
+
+func (h *AuthHandler) GetUsers(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	users, err := h.service.GetUsers(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, model.ToUsersResponse(users))
 }

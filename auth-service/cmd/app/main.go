@@ -86,9 +86,9 @@ func run(ctx context.Context) error {
 		auth.POST("/logout", h.Logout)
 	}
 
-	//users := r.Group("/users")
+	users := r.Group("/users")
 	{
-		//user.GET("/users", h.GetUsers)
+		users.GET("", h.GetUsers)
 	}
 
 	user := r.Group("/user")
@@ -101,8 +101,8 @@ func run(ctx context.Context) error {
 		user.PUT("/password", h.ChangePassword)
 		user.PUT("/profile", h.ChangeProfile)
 		user.PUT("/email", h.ChangeEmail)
-		user.DELETE("/delete", h.Delete)
 
+		user.DELETE("/delete", h.Delete)
 	}
 
 	server := &http.Server{
