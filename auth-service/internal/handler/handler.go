@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/model"
+	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/repository"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/service"
 	"go.uber.org/zap"
 )
@@ -28,12 +29,8 @@ func NewAuthHandler(s service.AuthService, logger *zap.Logger, cfg *config.Confi
 	}
 }
 
-var (
-	ErrNotFound = errors.New("user not found")
-)
-
 // POST /auth/signup
-func (h *AuthHandler) SignUpHandler(c *gin.Context) {
+func (h *AuthHandler) SignUp(c *gin.Context) {
 	var req model.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// WARN: Ошибка валидации - это не ошибка сервера, это ошибка клиента
@@ -71,15 +68,15 @@ func (h *AuthHandler) SignUpHandler(c *gin.Context) {
 }
 
 // POST /auth/signin
-func (h *AuthHandler) SignInHandler(c *gin.Context) {
+func (h *AuthHandler) SignIn(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-    // Валидация тоже нужна, чтобы отсеять пустые email/пароли сразу
-    if err := h.validator.ValidateStruct(&req); err != nil {
+	// Валидация тоже нужна, чтобы отсеять пустые email/пароли сразу
+	if err := h.validator.ValidateStruct(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed"})
 		return
 	}
@@ -95,15 +92,15 @@ func (h *AuthHandler) SignInHandler(c *gin.Context) {
 	// HttpOnly: true (JS не имеет доступа, защита от XSS)
 	// Secure: true (только HTTPS, включаем в проде)
 	isSecure := h.cfg.App.Mode == "release"
-	
+
 	c.SetCookie(
-		"token",                               // name
-		token,                                 // value
-		int(h.cfg.JWT.ExpirationHours*3600),   // maxAge (в секундах)
-		"/",                                   // path
-		"",                                    // domain (пустой = текущий хост)
-		isSecure,                              // secure
-		true,                                  // httpOnly
+		"token",                             // name
+		token,                               // value
+		int(h.cfg.JWT.ExpirationHours*3600), // maxAge (в секундах)
+		"/",                                 // path
+		"",                                  // domain (пустой = текущий хост)
+		isSecure,                            // secure
+		true,                                // httpOnly
 	)
 
 	// Возвращаем токен еще и в JSON (удобно для мобильных приложений)
@@ -111,33 +108,33 @@ func (h *AuthHandler) SignInHandler(c *gin.Context) {
 }
 
 // POST /auth/logout
-func (h *AuthHandler) LogoutHandler(c *gin.Context) {
-    // Чтобы удалить куку, нужно отправить её с тем же именем, 
-    // но с MaxAge = -1 (истекшая)
-    c.SetCookie("token", "", -1, "/", "", false, true)
-    
-    c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
+func (h *AuthHandler) Logout(c *gin.Context) {
+	// Чтобы удалить куку, нужно отправить её с тем же именем,
+	// но с MaxAge = -1 (истекшая)
+	c.SetCookie("token", "", -1, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
 }
 
 func (h *AuthHandler) GetProfile(c *gin.Context) {
-    // Достаем ID, который положил Middleware
-    userID, exists := c.Get("userID")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-        return
-    }
+	// Достаем ID, который положил Middleware
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
-    // Приводим интерфейс к типу uuid.UUID
-    id := userID.(uuid.UUID)
+	// Приводим интерфейс к типу uuid.UUID
+	id := userID.(uuid.UUID)
 
-    // Ищем в базе
-    user, err := h.service.GetByID(c.Request.Context(), id)
-    if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-        return
-    }
+	// Ищем в базе
+	user, err := h.service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
 
-    c.JSON(http.StatusOK, model.ToResponse(user))
+	c.JSON(http.StatusOK, model.ToResponse(user))
 }
 
 func (h *AuthHandler) GetByID(c *gin.Context) {
@@ -155,7 +152,7 @@ func (h *AuthHandler) GetByID(c *gin.Context) {
 	user, err := h.service.GetByID(c.Request.Context(), uid)
 	if err != nil {
 		// Проверяем, это ошибка "не найдено" или системный сбой
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
@@ -183,4 +180,138 @@ func (h *AuthHandler) GetByEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, model.ToResponse(user))
+}
+
+// PUT /user/profile
+func (h *AuthHandler) ChangeProfile(c *gin.Context) {
+    userIDVal, exists := c.Get("userID")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+        return
+    }
+    userID := userIDVal.(uuid.UUID)
+
+    var req model.ChangeProfileRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+        return // Добавили return!
+    }
+
+    if err := h.validator.ValidateStruct(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
+        return
+    }
+
+    err := h.service.ChangeProfile(c.Request.Context(), userID, &req)
+    if err != nil {
+		if errors.Is(err, repository.ErrDuplicateUsername) {
+            c.JSON(http.StatusConflict, gin.H{"error": "username already taken"})
+            return
+        }
+        if errors.Is(err, repository.ErrNotFound) {
+            c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+            return
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change profile"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "profile updated successfully"})
+}
+
+// PUT /user/email
+func (h *AuthHandler) ChangeEmail(c *gin.Context) {
+    userIDVal, exists := c.Get("userID")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+        return
+    }
+    userID := userIDVal.(uuid.UUID)
+
+    var req model.ChangeEmailRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+        return // Добавили return!
+    }
+
+    if err := h.validator.ValidateStruct(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
+        return
+    }
+
+    err := h.service.ChangeEmail(c.Request.Context(), userID, &req)
+    if err != nil {
+		if errors.Is(err, repository.ErrDuplicateEmail) {
+            c.JSON(http.StatusConflict, gin.H{"error": "email already taken"})
+            return
+        }
+        if errors.Is(err, repository.ErrNotFound) {
+            c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+            return
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change email"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "email updated successfully"})
+}
+
+// PUT /user/password
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	// Достаем ID пользователя из контекста (положил AuthMiddleware)
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	var req model.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	if err := h.validator.ValidateStruct(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "validation failed", "details": err.Error()})
+		return
+	}
+
+	// Вызываем сервис
+	err := h.service.ChangePassword(c.Request.Context(), userID, &req)
+	if err != nil {
+		if err.Error() == "invalid old password" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "wrong old password"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
+}
+
+func (h *AuthHandler) Delete(c *gin.Context) {
+	// Достаем ID пользователя из контекста (положил AuthMiddleware)
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID := userIDVal.(uuid.UUID)
+
+	err := h.service.Delete(c.Request.Context(), userID)
+	if err != nil {
+		// Проверяем, это ошибка "не найдено" или системный сбой
+		if errors.Is(err, repository.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+
+		h.logger.Error("failed to delete user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+	c.SetCookie("token", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "user has been deleted successfully"})
 }

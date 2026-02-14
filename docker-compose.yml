@@ -10,7 +10,7 @@ services:
       TZ: ${TIME_ZONE}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./migrations:/docker-entrypoint-initdb.d
+      - ./auth-service/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
@@ -19,14 +19,17 @@ services:
 
   app:
     #image: gsrlabs/auth-service:latest
-    build: ./auth-service
+    build:
+      context: ./auth-service
+      args:
+        - TIME_ZONE=${TIME_ZONE}
     container_name: auth_service
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8040}:8040"
     environment:
       - APP_PORT=${APP_PORT}
-      - DB_HOST=${DB_USER:-postgres}
+      - DB_HOST=${DB_HOST:-postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-password123}

@@ -81,9 +81,14 @@ func run(ctx context.Context) error {
 
 	auth := r.Group("/auth")
 	{
-		auth.POST("/signup", h.SignUpHandler) // Регистрация
-		auth.POST("/signin", h.SignInHandler) // Логин
-		auth.POST("/logout", h.LogoutHandler)
+		auth.POST("/signup", h.SignUp) // Регистрация
+		auth.POST("/signin", h.SignIn) // Логин
+		auth.POST("/logout", h.Logout)
+	}
+
+	//users := r.Group("/users")
+	{
+		//user.GET("/users", h.GetUsers)
 	}
 
 	user := r.Group("/user")
@@ -92,10 +97,11 @@ func run(ctx context.Context) error {
 		user.GET("/:id", h.GetByID)
 		user.GET("/search", h.GetByEmail)
 		user.GET("/me", h.GetProfile)
-		
-		//user.PUT("/:id", h.Update)
-		//user.DELETE("/:id", h.Delete)
-		//user.GET("", h.List)
+
+		user.PUT("/password", h.ChangePassword)
+		user.PUT("/profile", h.ChangeProfile)
+		user.PUT("/email", h.ChangeEmail)
+		user.DELETE("/delete", h.Delete)
 
 	}
 

@@ -16,6 +16,9 @@ func ToResponse(user *User) UserResponse {
 	createdAt := user.CreatedAt.Format(dateFormat)
 	updatedAt := user.UpdatedAt.Format(dateFormat)
 
+	//createdAt := user.CreatedAt.Local().Format(dateFormat)
+    //updatedAt := user.UpdatedAt.Local().Format(dateFormat)
+
 	return UserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
