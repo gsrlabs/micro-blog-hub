@@ -58,17 +58,17 @@ func run(ctx context.Context) error {
 	authRepo := repository.NewAuthRepository(database.Pool, logger)
 
 	// 3️⃣ Service
-	authService := service.NewAuthService(authRepo, logger)
+	authService := service.NewAuthService(authRepo, logger, cfg)
 
 	// 4️⃣ Handler
-	h := handler.NewAuthHandler(authService, logger)
+	h := handler.NewAuthHandler(authService, logger, cfg)
 
 	// Устанавливаем режим работы Gin
-    if cfg.App.Mode == "release" {
-        gin.SetMode(gin.ReleaseMode)
-    } else {
-        gin.SetMode(gin.DebugMode)
-    }
+	if cfg.App.Mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
 
 	// 5️⃣ Router
 	r := gin.New()
@@ -80,14 +80,24 @@ func run(ctx context.Context) error {
 	})
 
 	auth := r.Group("/auth")
-	auth.POST("", h.Create)
+	{
+		auth.POST("/signup", h.SignUpHandler) // Регистрация
+		auth.POST("/signin", h.SignInHandler) // Логин
+		auth.POST("/logout", h.LogoutHandler)
+	}
 
 	user := r.Group("/user")
-	user.GET("/:id", h.GetByID)
-	user.GET("/search", h.GetByEmail)
-	//user.PUT("/:id", h.Update)
-	//user.DELETE("/:id", h.Delete)
-	//user.GET("", h.List)
+	user.Use(h.AuthMiddleware)
+	{
+		user.GET("/:id", h.GetByID)
+		user.GET("/search", h.GetByEmail)
+		user.GET("/me", h.GetProfile)
+		
+		//user.PUT("/:id", h.Update)
+		//user.DELETE("/:id", h.Delete)
+		//user.GET("", h.List)
+
+	}
 
 	server := &http.Server{
 		Addr:    ":" + cfg.App.Port,
@@ -102,20 +112,19 @@ func run(ctx context.Context) error {
 	}()
 
 	quit := make(chan os.Signal, 1)
-    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-    <-quit
-    
-    logger.Info("Shutting down server...")
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 
-    ctxShutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	logger.Info("Shutting down server...")
 
-    if err := server.Shutdown(ctxShutdown); err != nil {
-        return fmt.Errorf("server forced to shutdown: %w", err)
-    }
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    logger.Info("Server exiting")
+	if err := server.Shutdown(ctxShutdown); err != nil {
+		return fmt.Errorf("server forced to shutdown: %w", err)
+	}
+
+	logger.Info("Server exiting")
 
 	return nil
 }
-

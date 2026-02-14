@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -27,4 +28,18 @@ type UserResponse struct {
 	Email     string    `json:"email"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
+}
+
+
+// LoginRequest - то, что шлет клиент
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,strict_email"`
+	Password string `json:"password" validate:"required"`
+}
+
+// UserClaims - расширяем стандартный токен своими полями
+type UserClaims struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Username string    `json:"username"`
+	jwt.RegisteredClaims
 }
