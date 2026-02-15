@@ -48,7 +48,7 @@ func run(ctx context.Context) error {
 	defer logger.Sync()
 
 	// 1️⃣ DB
-	database, err := db.Connect(ctx, cfg)
+	database, err := db.Connect(ctx, cfg, logger)
 	if err != nil {
 		return err
 	}
