@@ -4,23 +4,18 @@ MAIN_PATH=auth-service/cmd/app/main.go
 MIGRATIONS_DIR=auth-service/migrations
 DB_DSN="postgres://postgres:password123@localhost:5432/auth_db?sslmode=disable"
 
-.PHONY: all test clean up down rebuild logs lint db-shell migrate-status migrate-new info
+.PHONY: all up down rebuild logs lint db-shell migrate-status migrate-new test-auth info
 
 all: info
 
 # --- Разработка ---
-test:
+test-auth:
 	@echo "Running tests..."
-	go test -v -p 1 ./...
+	cd auth-service && go test -v -p 1 -count=1 ./...
 
 lint:
 	@echo "Running linter..."
 	golangci-lint run ./...
-
-clean:
-	@echo "Cleaning binaries..."
-	rm -f $(BINARY_NAME)
-	go clean
 
 # --- Docker ---
 up:
@@ -60,7 +55,6 @@ info:
 	@echo "  make down         - Остановить проект"
 	@echo "  make rebuild      - Пересобрать и запустить"
 	@echo "  make logs         - Логи контейнеров"
-	@echo "  make test         - Запустить тесты"
+	@echo "  make test-auth    - Запустить тесты auth сервиса"
 	@echo "  make db-shell     - Зайти в консоль PSQL"
 	@echo "  make migrate-new  - Создать миграцию (нужно name=имя)"
-	@echo "  make clean        - Удалить временные файлы"

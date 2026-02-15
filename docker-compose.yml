@@ -3,6 +3,8 @@ services:
     image: postgres:18
     container_name: auth_db
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-auth_db}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -10,7 +12,6 @@ services:
       TZ: ${TIME_ZONE}
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./auth-service/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
