@@ -1,4 +1,4 @@
-name: Go Tests
+name: Go Tests auth-service
 
 on: [push, pull_request]
 
@@ -31,27 +31,32 @@ jobs:
           cache: true
 
       - name: Install dependencies
+        working-directory: ./auth-service
         run: go mod download
 
       - name: Run Linter
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+          working-directory: ./auth-service
 
       - name: Build Application
-        run: go build -v -o app-binary ./auth-service/cmd/app
+        working-directory: ./auth-service
+        run: go build -v -o app-binary ./cmd/app
 
       - name: Apply Migrations
+        working-directory: ./auth-service
         run: |
           go install github.com/pressly/goose/v3/cmd/goose@latest
-          goose -dir ./auth-service/migrations postgres "user=postgres password=password123 dbname=auth_db sslmode=disable" up
+          goose -dir ./migrations postgres "user=postgres password=password123 dbname=auth_db sslmode=disable" up
 
       - name: Run Tests
+        working-directory: ./auth-service
         env:
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: postgres
           DB_PASSWORD: password123
           DB_NAME: auth_db
-          MIGRATIONS_PATH_TEST: ./auth-service/migrations
-        run: go test -v -p 1 ./auth-service/...
+          MIGRATIONS_PATH_TEST: ./migrations
+        run: go test -v -p 1 ./...
