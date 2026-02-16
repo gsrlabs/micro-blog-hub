@@ -69,7 +69,7 @@ func getTestConfig() *config.Config {
 		cfg.Database.Host = "localhost" // Подключаемся к проброшенному порту Docker
 	}
 
-	// Отключаем автоматические миграции при каждом коннекте, 
+	// Отключаем автоматические миграции при каждом коннекте,
 	// так как они уже прогнаны в db_test.go
 	cfg.Migrations.Auto = false
 
@@ -85,7 +85,6 @@ func setupTestDB(t *testing.T) (AuthRepository, func()) {
 
 	database, err := db.Connect(ctx, cfg, logger)
 	require.NoError(t, err, "failed to connect to db")
-
 
 	repo := NewAuthRepository(database.Pool, logger)
 
@@ -114,7 +113,6 @@ func TestAuthRepo_Lifecycle(t *testing.T) {
 		Email:    "john@example.com",
 		Password: "hashed_password_123", // В БД поле называется password_hash, но в структуре у тебя Password
 	}
-
 
 	var savedID uuid.UUID
 
@@ -231,7 +229,7 @@ func TestAuthRepo_GetUsers(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Создаем 3 пользователей. Из-за ORDER BY created_at DESC 
+	// Создаем 3 пользователей. Из-за ORDER BY created_at DESC
 	// последним вставленный будет первым в результате.
 	users := []*model.User{
 		{Username: "u1", Email: "u1@example.com", Password: "p"},
@@ -267,4 +265,3 @@ func TestAuthRepo_GetUsers(t *testing.T) {
 		assert.Len(t, list, 0)
 	})
 }
-

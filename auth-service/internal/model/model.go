@@ -17,9 +17,9 @@ type User struct {
 }
 
 type CreateUserRequest struct {
-    Username string `json:"username" validate:"required,min=2,max=50"`
-    Email    string `json:"email" validate:"required,strict_email"` 
-    Password string `json:"password" validate:"required,min=8,max=72"`
+	Username string `json:"username" validate:"required,min=2,max=50"`
+	Email    string `json:"email" validate:"required,strict_email"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
 }
 
 type UserResponse struct {
@@ -60,5 +60,5 @@ type ChangeProfileRequest struct {
 }
 
 type ChangeEmailRequest struct {
-	NewEmail string `json:"new_email" validate:"required,strict_email"` 
+	NewEmail string `json:"new_email" validate:"required,strict_email"`
 }

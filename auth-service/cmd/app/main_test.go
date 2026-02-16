@@ -16,17 +16,16 @@ func TestRun(t *testing.T) {
 	// 1. МАГИЯ ПУТЕЙ: Переходим в корень auth-service
 	// Сохраняем оригинальную директорию, чтобы вернуть ее после теста
 	originalWD, _ := os.Getwd()
-	err := os.Chdir("../../") 
+	err := os.Chdir("../../")
 	require.NoError(t, err, "не удалось сменить рабочую директорию на корень сервиса")
-	defer os.Chdir(originalWD) // Возвращаем как было при выходе из теста
-
+	defer func() { _ = os.Chdir(originalWD) }() // Возвращаем как было при выходе из теста
 	// 2. Настройка окружения
 	// Теперь мы в корне auth-service. Viper легко найдет "config/config.yml"
-	os.Setenv("APP_PORT", "8041")
-	os.Setenv("APP_MODE", "test")
-	os.Setenv("DB_HOST", "localhost")
+	_ = os.Setenv("APP_PORT", "8041")
+	_ = os.Setenv("APP_MODE", "test")
+	_ = os.Setenv("DB_HOST", "localhost")
 	if os.Getenv("DB_PASSWORD") == "" {
-		os.Setenv("DB_PASSWORD", "password123") // Замени на пароль локальной БД, если нужно
+		_ = os.Setenv("DB_PASSWORD", "password123") // Замени на пароль локальной БД, если нужно
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -36,7 +35,7 @@ func TestRun(t *testing.T) {
 
 	// 3. Запуск приложения
 	go func() {
-		// Вызываем твой оригинальный run(ctx). 
+		// Вызываем твой оригинальный run(ctx).
 		// Он будет искать "config/config.yml" и найдет его!
 		errChan <- run(ctx)
 	}()
@@ -46,11 +45,11 @@ func TestRun(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		resp, err := http.Get("http://localhost:8041/health")
 		if err == nil && resp.StatusCode == http.StatusOK {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			success = true
 			break
 		}
-		
+
 		// Проверяем, не упал ли run() с другой ошибкой
 		select {
 		case err := <-errChan:
@@ -67,7 +66,7 @@ func TestRun(t *testing.T) {
 		resp, err := http.Get("http://localhost:8041/health")
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	})
 
 	// 6. Тестируем Graceful Shutdown

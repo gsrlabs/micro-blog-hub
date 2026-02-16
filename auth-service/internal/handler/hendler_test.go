@@ -81,8 +81,6 @@ func performRequest(h http.Handler, method, path string, body string, cookies []
 	return w
 }
 
-
-
 func TestAuthHandler_SignUp(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -493,40 +491,40 @@ func TestAuthHandler_ChangeProfile_Errors(t *testing.T) {
 	})
 
 	t.Run("Duplicate Username", func(t *testing.T) {
-	mockSvc := &mockAuthService{} // новый мок
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
-	mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrDuplicateUsername)
+		mockSvc := &mockAuthService{} // новый мок
+		h := NewAuthHandler(mockSvc, logger, &config.Config{})
+		mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrDuplicateUsername)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("userID", id)
-	body := `{"new_username":"taken"}`
-	req := httptest.NewRequest(http.MethodPut, "/user/profile", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	c.Request = req
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("userID", id)
+		body := `{"new_username":"taken"}`
+		req := httptest.NewRequest(http.MethodPut, "/user/profile", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		c.Request = req
 
-	h.ChangeProfile(c)
-	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "username already taken")
-	mockSvc.AssertExpectations(t)
-})
+		h.ChangeProfile(c)
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.Contains(t, w.Body.String(), "username already taken")
+		mockSvc.AssertExpectations(t)
+	})
 
-t.Run("User Not Found", func(t *testing.T) {
-	mockSvc := &mockAuthService{} // снова новый мок
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
-	mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrNotFound)
+	t.Run("User Not Found", func(t *testing.T) {
+		mockSvc := &mockAuthService{} // снова новый мок
+		h := NewAuthHandler(mockSvc, logger, &config.Config{})
+		mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrNotFound)
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Set("userID", id)
-	body := `{"new_username":"okname"}`
-	req := httptest.NewRequest(http.MethodPut, "/user/profile", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	c.Request = req
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("userID", id)
+		body := `{"new_username":"okname"}`
+		req := httptest.NewRequest(http.MethodPut, "/user/profile", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		c.Request = req
 
-	h.ChangeProfile(c)
-	assert.Equal(t, http.StatusNotFound, w.Code)
-})
+		h.ChangeProfile(c)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
 }
 
 func TestAuthHandler_ChangeEmail_Errors(t *testing.T) {
@@ -598,4 +596,3 @@ func TestAuthHandler_ChangePassword_Errors(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "wrong old password")
 	})
 }
-

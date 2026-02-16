@@ -138,7 +138,6 @@ func TestAuthMiddleware_EdgeCases(t *testing.T) {
 	})
 }
 
-
 func TestZapLogger(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -161,7 +160,7 @@ func TestZapLogger(t *testing.T) {
 		// Проверяем, что логгер что-то записал
 		assert.Equal(t, 1, recorded.Len())
 		logEntry := recorded.All()[0]
-		
+
 		assert.Equal(t, "request processed", logEntry.Message)
 		// Проверяем поля (status, method)
 		assert.Equal(t, int64(200), logEntry.ContextMap()["status"])

@@ -28,7 +28,7 @@ func TestNewLogger(t *testing.T) {
 
 			// Проверяем, включен ли ожидаемый уровень
 			assert.True(t, l.Core().Enabled(tt.expected), "Level %s should be enabled", tt.levelStr)
-			
+
 			// Проверяем, что уровень ниже ожидаемого выключен (для уровней выше Debug)
 			if tt.expected > zap.DebugLevel {
 				assert.False(t, l.Core().Enabled(tt.expected-1), "Level below %s should be disabled", tt.levelStr)
@@ -37,12 +37,12 @@ func TestNewLogger(t *testing.T) {
 	})
 
 	t.Run("Check Production Mode (JSON)", func(t *testing.T) {
-		// В zapcore сложно напрямую вытащить тип энкодера из ядра, 
+		// В zapcore сложно напрямую вытащить тип энкодера из ядра,
 		// но мы можем проверить конфигурацию через инициализацию.
 		l, err := New("info", "prod")
 		assert.NoError(t, err)
 		assert.NotNil(t, l)
-		
+
 		// Проверяем наличие обязательных опций (например, AddCaller)
 		// Если мы залогируем что-то, в выводе должен быть "caller"
 		assert.NotNil(t, l.Check(zap.InfoLevel, "test message"), "Logger should be functional")

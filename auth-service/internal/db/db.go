@@ -79,7 +79,13 @@ func runMigrations(dsn, migrationsPath, mode string, logger *zap.Logger) error {
 	if err != nil {
 		return fmt.Errorf("open sql connection for migrations: %w", err)
 	}
-	defer db.Close()
+
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			logger.Error("error close database", zap.Error(err))
+		}
+	}()
 
 	if err := gooseSetDialect("postgres"); err != nil {
 		return fmt.Errorf("set goose dialect: %w", err)

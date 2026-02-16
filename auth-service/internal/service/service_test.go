@@ -215,7 +215,6 @@ func TestLogin_TokenSignError(t *testing.T) {
 	// Ломаем secret
 	cfg.JWT.Secret = ""
 
-
 	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
 	user := &model.User{
 		ID:       uuid.New(),

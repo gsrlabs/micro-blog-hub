@@ -19,11 +19,11 @@ type Validator struct {
 // NewValidator создает новый экземпляр
 func NewValidator() *Validator {
 	v := validator.New()
-	
+
 	// Регистрируем наш кастомный валидатор
 	// Назовем его "strict_email", чтобы отличать от встроенного
 	_ = v.RegisterValidation("strict_email", validateEmail)
-	
+
 	return &Validator{validate: v}
 }
 
@@ -33,28 +33,28 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 }
 
 func validateEmail(fl validator.FieldLevel) bool {
-    email := fl.Field().String()
-    
-    // 1. Общая длина
-    if len(email) < 3 || len(email) > 254 {
-        return false
-    }
+	email := fl.Field().String()
 
-    // 2. Проверка регуляркой
-    if !emailRegex.MatchString(email) {
-        return false
-    }
+	// 1. Общая длина
+	if len(email) < 3 || len(email) > 254 {
+		return false
+	}
 
-    // 3. Дополнительно: длина локальной части (до @)
-    parts := strings.Split(email, "@")
-    if len(parts[0]) > 64 {
-        return false
-    }
+	// 2. Проверка регуляркой
+	if !emailRegex.MatchString(email) {
+		return false
+	}
 
-    // 4. Проверка на двойные точки в локальной части (регулярка выше это не всегда ловит)
-    if strings.Contains(parts[0], "..") || strings.HasPrefix(parts[0], ".") || strings.HasSuffix(parts[0], ".") {
-        return false
-    }
+	// 3. Дополнительно: длина локальной части (до @)
+	parts := strings.Split(email, "@")
+	if len(parts[0]) > 64 {
+		return false
+	}
 
-    return true
+	// 4. Проверка на двойные точки в локальной части (регулярка выше это не всегда ловит)
+	if strings.Contains(parts[0], "..") || strings.HasPrefix(parts[0], ".") || strings.HasSuffix(parts[0], ".") {
+		return false
+	}
+
+	return true
 }

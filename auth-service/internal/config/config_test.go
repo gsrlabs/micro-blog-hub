@@ -42,8 +42,10 @@ jwt:
 	t.Run("Override with Environment Variables", func(t *testing.T) {
 		// Устанавливаем переменную окружения, которая должна перекрыть файл
 		expectedPort := "9090"
-		os.Setenv("APP_PORT", expectedPort)
-		defer os.Unsetenv("APP_PORT") // Чистим за собой
+		_ = os.Setenv("APP_PORT", expectedPort)
+		defer func() {
+			_ = os.Unsetenv("APP_PORT")
+		}()
 
 		cfg, err := Load(configPath)
 		assert.NoError(t, err)

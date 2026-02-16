@@ -25,7 +25,7 @@ func TestMappers(t *testing.T) {
 	t.Run("ToResponse", func(t *testing.T) {
 		id := uuid.New()
 		now := time.Date(2026, 2, 15, 13, 0, 0, 0, time.UTC)
-		
+
 		user := &User{
 			ID:        id,
 			Username:  "tester",
