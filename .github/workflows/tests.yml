@@ -44,11 +44,20 @@ jobs:
         working-directory: ./auth-service
         run: go build -v -o app-binary ./cmd/app/main.go
 
+      - name: Wait for Postgres
+        working-directory: ./auth-service
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for postgres..."
+          sleep 2
+          done
+
       - name: Apply Migrations
         working-directory: ./auth-service
         run: |
           go install github.com/pressly/goose/v3/cmd/goose@latest
-          goose -dir ../../migrations postgres "user=postgres password=password123 dbname=auth_db sslmode=disable" up
+          goose -dir ./migrations postgres \
+          "host=localhost port=5432 user=postgres password=password123 dbname=auth_db sslmode=disable" up
 
       - name: Run Tests
         working-directory: ./auth-service
@@ -58,5 +67,5 @@ jobs:
           DB_USER: postgres
           DB_PASSWORD: password123
           DB_NAME: auth_db
-          MIGRATIONS_PATH_TEST: ../../migrations
+          MIGRATIONS_PATH_TEST: ./migrations
         run: go test -v -p 1 ./...
