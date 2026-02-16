@@ -45,10 +45,15 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer logger.Sync()
+
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to sync logger: %v\n", err)
+		}
+	}()
 
 	// 1️⃣ DB
-	database, err := db.Connect(ctx, cfg)
+	database, err := db.Connect(ctx, cfg, logger)
 	if err != nil {
 		return err
 	}

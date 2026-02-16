@@ -29,9 +29,9 @@ type authRepo struct {
 }
 
 var (
-	ErrNotFound = errors.New("user not found")
+	ErrNotFound          = errors.New("user not found")
 	ErrDuplicateUsername = errors.New("username already taken")
-	ErrDuplicateEmail = errors.New("email already taken")
+	ErrDuplicateEmail    = errors.New("email already taken")
 )
 
 func NewAuthRepository(pool *pgxpool.Pool, logger *zap.Logger) AuthRepository {
@@ -91,35 +91,35 @@ func (r *authRepo) GetByEmail(ctx context.Context, email string) (*model.User, e
 }
 
 func (r *authRepo) UpdateProfile(ctx context.Context, id uuid.UUID, username string) error {
-    query := `UPDATE users SET username = $1, updated_at = NOW() WHERE id = $2`
-    
-    cmd, err := r.pool.Exec(ctx, query, username, id)
-    if err != nil {
+	query := `UPDATE users SET username = $1, updated_at = NOW() WHERE id = $2`
+
+	cmd, err := r.pool.Exec(ctx, query, username, id)
+	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-            return ErrDuplicateUsername
-        }
-        return fmt.Errorf("db update profile: %w", err)
-    }
+			return ErrDuplicateUsername
+		}
+		return fmt.Errorf("db update profile: %w", err)
+	}
 
-    if cmd.RowsAffected() == 0 {
-        return ErrNotFound
-    }
+	if cmd.RowsAffected() == 0 {
+		return ErrNotFound
+	}
 
-    return nil
+	return nil
 }
 
 func (r *authRepo) UpdateEmail(ctx context.Context, id uuid.UUID, email string) error {
 	query := `UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2`
 
 	cmd, err := r.pool.Exec(ctx, query, email, id)
-    if err != nil {
+	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-            return ErrDuplicateEmail
-        }
-        return fmt.Errorf("db update email: %w", err)
-    }
+			return ErrDuplicateEmail
+		}
+		return fmt.Errorf("db update email: %w", err)
+	}
 
 	if cmd.RowsAffected() == 0 {
 		return ErrNotFound
@@ -130,16 +130,16 @@ func (r *authRepo) UpdateEmail(ctx context.Context, id uuid.UUID, email string) 
 
 func (r *authRepo) UpdatePassword(ctx context.Context, userID uuid.UUID, newHash string) error {
 	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`
-	
+
 	cmd, err := r.pool.Exec(ctx, query, newHash, userID)
 	if err != nil {
 		return err
 	}
-	
+
 	if cmd.RowsAffected() == 0 {
 		return ErrNotFound
 	}
-	
+
 	return nil
 }
 
@@ -148,7 +148,7 @@ func (r *authRepo) Delete(ctx context.Context, id uuid.UUID) error {
 
 	cmd, err := r.pool.Exec(ctx, query, id)
 	if err != nil {
-		return  err
+		return err
 	}
 	if cmd.RowsAffected() == 0 {
 		return ErrNotFound
@@ -171,12 +171,12 @@ func (r *authRepo) GetUsers(ctx context.Context, limit, offset int) ([]*model.Us
 	defer rows.Close()
 
 	result := make([]*model.User, 0)
-    for rows.Next() {
-        var u model.User
-        if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt); err != nil {
-            return nil, err
-        }
-        result = append(result, &u)
-    }
-    return result, nil
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		result = append(result, &u)
+	}
+	return result, nil
 }

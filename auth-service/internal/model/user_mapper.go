@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 const dateFormat = "02.01.2006 15:04:05"
 
 func ToDomain(req CreateUserRequest) (*User, error) {
@@ -13,8 +15,8 @@ func ToDomain(req CreateUserRequest) (*User, error) {
 
 func ToResponse(user *User) UserResponse {
 
-	createdAt := user.CreatedAt.Local().Format(dateFormat)
-	updatedAt := user.UpdatedAt.Local().Format(dateFormat)
+	createdAt := dateFormating(user.CreatedAt)
+	updatedAt := dateFormating(user.UpdatedAt)
 
 	return UserResponse{
 		ID:        user.ID,
@@ -26,23 +28,26 @@ func ToResponse(user *User) UserResponse {
 }
 
 func ToUsersResponse(users []*User) []UsersResponse {
-	// Сразу выделяем память под нужное количество элементов
 
 	result := make([]UsersResponse, 0, len(users))
 
-	for _, user := range users {
-		// Добавляем .Local() для корректного отображения времени
-		createdAt := user.CreatedAt.Local().Format(dateFormat)
-		updatedAt := user.UpdatedAt.Local().Format(dateFormat)
+	for _, u := range users {
 
-		res := UsersResponse{
-			ID:        user.ID,
-			Username:  user.Username,
+		createdAt := dateFormating(u.CreatedAt)
+		updatedAt := dateFormating(u.UpdatedAt)
+
+		user := UsersResponse{
+			ID:        u.ID,
+			Username:  u.Username,
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,
 		}
 
-		result = append(result, res)
+		result = append(result, user)
 	}
 	return result
+}
+
+func dateFormating(date time.Time) string {
+	return date.Local().Format(dateFormat)
 }

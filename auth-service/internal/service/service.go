@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -69,6 +68,11 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 		// Специально возвращаем общую ошибку, чтобы не подсказывать хакерам (есть такой юзер или нет)
 		s.logger.Warn("login failed: user not found", zap.String("email", req.Email))
 		return "", fmt.Errorf("invalid credentials")
+	}
+
+	if s.cfg.JWT.Secret == "" {
+		s.logger.Error("jwt secret is empty")
+		return "", fmt.Errorf("failed to generate token")
 	}
 
 	// 2. Проверяем пароль (сравниваем хеш из БД и присланный пароль)
@@ -203,11 +207,17 @@ func (s *authService) Delete(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (s *authService) GetUsers(ctx context.Context, limit, offset int) ([]*model.User, error) {
+	// Правила по умолчанию живут здесь
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
 	users, err := s.repo.GetUsers(ctx, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	s.logger.Info("users found", zap.String("count=", strconv.Itoa(len(users))))
 	return users, nil
 }

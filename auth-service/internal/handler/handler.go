@@ -321,13 +321,6 @@ func (h *AuthHandler) GetUsers(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
 	users, err := h.service.GetUsers(c.Request.Context(), limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch users"})
