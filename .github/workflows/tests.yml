@@ -42,13 +42,13 @@ jobs:
 
       - name: Build Application
         working-directory: ./auth-service
-        run: go build -v -o app-binary ./cmd/app
+        run: go build -v -o app-binary ./cmd/app/main.go
 
       - name: Apply Migrations
         working-directory: ./auth-service
         run: |
           go install github.com/pressly/goose/v3/cmd/goose@latest
-          goose -dir ./migrations postgres "user=postgres password=password123 dbname=auth_db sslmode=disable" up
+          goose -dir ../../migrations postgres "user=postgres password=password123 dbname=auth_db sslmode=disable" up
 
       - name: Run Tests
         working-directory: ./auth-service
@@ -58,5 +58,5 @@ jobs:
           DB_USER: postgres
           DB_PASSWORD: password123
           DB_NAME: auth_db
-          MIGRATIONS_PATH_TEST: ./migrations
+          MIGRATIONS_PATH_TEST: ../../migrations
         run: go test -v -p 1 ./...
