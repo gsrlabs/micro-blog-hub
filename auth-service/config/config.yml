@@ -17,11 +17,13 @@ migrations:
   auto: true
 
 jwt:
-  secret: "your-secret-key-change-in-production"
   expiration_hours: 24
 
 logging:
   level: "debug"
+
+frontend:
+  host: "http://localhost:5173"
 
 test:
   db_host: localhost

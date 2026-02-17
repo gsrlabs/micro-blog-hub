@@ -28,7 +28,7 @@ down:
 
 rebuild:
 	@echo "Rebuilding and starting..."
-	docker compose up --build -d
+	docker compose up --build
 
 logs:
 	@echo "Showing logs (press Ctrl+C to stop)..."

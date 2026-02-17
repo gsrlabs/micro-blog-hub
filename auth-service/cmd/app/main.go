@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/db"
@@ -79,6 +80,24 @@ func run(ctx context.Context) error {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(handler.ZapLogger(logger))
+
+	// ВАЖНО: Добавляем CORS middleware перед твоими роутами
+	corsConfig := cors.DefaultConfig()
+	// Разрешаем запросы с твоего фронтенда (укажи порт Svelte, обычно 5173)
+	if cfg.Frontend.Host == "" {
+		logger.Warn("frontend host is not specified")
+	} else {
+		corsConfig.AllowOrigins = []string{cfg.Frontend.Host}
+		logger.Info("allowed requests", zap.String("host", cfg.Frontend.Host))
+	}
+
+	// Разрешаем нужные методы, включая OPTIONS
+	corsConfig.AllowMethods = config.AllowMethods()
+	corsConfig.AllowHeaders = config.AllowHeaders()
+	// Жизненно важно для credentials: 'include' в api.ts!
+	corsConfig.AllowCredentials = true
+
+	r.Use(cors.New(corsConfig))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
