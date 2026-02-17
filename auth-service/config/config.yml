@@ -17,6 +17,7 @@ migrations:
   auto: true
 
 jwt:
+  secret: "wukWc07tmrHRXYgzInncCp-KHaW3Pbasj5kiSSoAR_UAjCyWv22JPuuRvusEFzdZkStw90PUIYAtOoLxmLd4ag"
   expiration_hours: 24
 
 logging:
