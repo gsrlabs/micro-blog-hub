@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
@@ -11,12 +12,18 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Database wraps the pgxpool.Pool to provide a unified database access point.
 type Database struct {
 	Pool   *pgxpool.Pool
 	Logger *zap.Logger
+}
+
+type dbLogConfig struct {
+	cfg   *config.DatabaseConfig
+	pgcfg *pgxpool.Config
 }
 
 var (
@@ -49,6 +56,13 @@ func Connect(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*Data
 	pgcfg.MinConns = cfg.Database.MinConns
 	pgcfg.MaxConnLifetime = time.Hour
 
+	logger.Info("database config",
+		zap.Object("database", dbLogConfig{
+			cfg:   &cfg.Database,
+			pgcfg: pgcfg,
+		}),
+	)
+
 	if cfg.Migrations.Auto {
 		if err := runMigrations(dsn, cfg.Migrations.Path, cfg.App.Mode, logger); err != nil {
 			return nil, err
@@ -66,6 +80,19 @@ func Connect(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*Data
 
 	logger.Info("connected to database")
 	return &Database{Pool: pool, Logger: logger}, nil
+}
+
+func (d dbLogConfig) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("host", d.cfg.Host)
+	enc.AddInt("port", d.cfg.Port)
+	enc.AddString("user", d.cfg.User)
+	enc.AddString("password", strings.Repeat("*", len(d.cfg.Password)))
+	enc.AddString("name", d.cfg.Name)
+	enc.AddString("sslmode", d.cfg.SSLMode)
+	enc.AddInt32("max_conns", d.pgcfg.MaxConns)
+	enc.AddInt32("min_conns", d.pgcfg.MinConns)
+	enc.AddDuration("max_conn_lifetime", d.pgcfg.MaxConnLifetime)
+	return nil
 }
 
 // runMigrations applies database schema changes using the goose provider

@@ -14,6 +14,7 @@ type Config struct {
 	Migrations MigrationConfig `mapstructure:"migrations"`
 	JWT        JWTConfig       `mapstructure:"jwt"`
 	Logging    LoggingConfig   `mapstructure:"logging"`
+	Frontend   FrontendHost    `mapstructure:"frontend"`
 	Test       TestConfig      `mapstructure:"test"`
 }
 
@@ -23,14 +24,14 @@ type AppConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Name     string `mapstructure:"name"`
-	SSLMode  string `mapstructure:"sslmode"`
-	MaxConns int32  `mapstructure:"max_conns"`
-	MinConns int32  `mapstructure:"min_conns"`
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	User            string `mapstructure:"user"`
+	Password        string `mapstructure:"password"`
+	Name            string `mapstructure:"name"`
+	SSLMode         string `mapstructure:"sslmode"`
+	MaxConns        int32  `mapstructure:"max_conns"`
+	MinConns        int32  `mapstructure:"min_conns"`
 }
 
 type MigrationConfig struct {
@@ -45,6 +46,10 @@ type JWTConfig struct {
 
 type LoggingConfig struct {
 	Level string `mapstructure:"level"`
+}
+
+type FrontendHost struct {
+	Host string `mapstructure:"host"`
 }
 
 type TestConfig struct {
@@ -70,6 +75,8 @@ func Load(path string) (*Config, error) {
 	_ = v.BindEnv("database.password", "DB_PASSWORD")
 	_ = v.BindEnv("database.name", "DB_NAME")
 	_ = v.BindEnv("database.sslmode", "DB_SSLMODE")
+	_ = v.BindEnv("jwt.secret", "JWT_SECRET")
+	_ = v.BindEnv("frontend.host", "FRONTEND_HOST")
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -92,4 +99,33 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("DB_HOST is required")
 	}
 	return nil
+}
+
+// --- Сors Config
+
+func AllowMethods() []string {
+
+	allowMethods := []string{
+		"GET",
+		"POST",
+		"PUT",
+		"PATCH",
+		"DELETE",
+		"HEAD",
+		"OPTIONS",
+	}
+
+	return allowMethods
+}
+
+func AllowHeaders() []string {
+
+	allowHeaders := []string{
+		"Origin",
+		"Content-Length",
+		"Content-Type",
+		"Authorization",
+	}
+
+	return allowHeaders
 }
