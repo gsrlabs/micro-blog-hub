@@ -1,3 +1,4 @@
 .env
 bin
 cookie.txt
+docker-compose-copy.yml

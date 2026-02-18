@@ -68,7 +68,7 @@ func Load(path string) (*Config, error) {
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	_ = v.BindEnv("app.port", "APP_PORT")
+	_ = v.BindEnv("app.port", "AUTH_SERVICE_APP_PORT")
 	_ = v.BindEnv("database.host", "DB_HOST")
 	_ = v.BindEnv("database.port", "DB_PORT")
 	_ = v.BindEnv("database.user", "DB_USER")
