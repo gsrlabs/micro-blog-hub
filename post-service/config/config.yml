@@ -1,0 +1,21 @@
+# config/config.yml
+app:
+  port: 8050
+  mode: "debug"
+
+mongo:
+  host: "mongo"
+  port: 27017
+  db: "post_db"
+
+redis:
+  host: "redis"
+  port: 6379
+
+grpc:
+  auth_host: "auth_service"
+  auth_port: 50051
+
+logging:
+  level: "debug"
+

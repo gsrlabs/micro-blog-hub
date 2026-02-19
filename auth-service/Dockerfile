@@ -18,5 +18,5 @@ WORKDIR /app
 COPY --from=builder /app/app .
 COPY --from=builder /app/migrations ./migrations
 COPY config/ config/
-EXPOSE ${APP_PORT:-8040}
+EXPOSE ${AUTH_SERVICE_APP_PORT:-8040}
 CMD ["./app"]

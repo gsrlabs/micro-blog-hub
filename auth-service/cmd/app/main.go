@@ -81,9 +81,9 @@ func run(ctx context.Context) error {
 	r.Use(gin.Recovery())
 	r.Use(handler.ZapLogger(logger))
 
-	// ВАЖНО: Добавляем CORS middleware перед твоими роутами
+	// ВАЖНО: Добавляем CORS middleware перед роутами
 	corsConfig := cors.DefaultConfig()
-	// Разрешаем запросы с твоего фронтенда (укажи порт Svelte, обычно 5173)
+	// Разрешаем запросы с фронтенда (указываем порт Svelte, обычно 5173)
 	if cfg.Frontend.Host == "" {
 		logger.Warn("frontend host is not specified")
 	} else {
