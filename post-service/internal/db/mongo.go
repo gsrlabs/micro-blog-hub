@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func NewMongoCLient(parent context.Context, host string, port string, ) (*mongo.Client, error) {
+func NewMongoCLient(parent context.Context, host, port, db string) (*mongo.Client, error) {
 
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
     defer cancel()

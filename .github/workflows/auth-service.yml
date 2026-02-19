@@ -67,5 +67,6 @@ jobs:
           DB_USER: postgres
           DB_PASSWORD: password123
           DB_NAME: auth_db
+          #JWT_SECRET: test-secret
           MIGRATIONS_PATH_TEST: ./migrations
         run: go test -v -p 1 ./...
