@@ -137,7 +137,7 @@ func run(ctx context.Context) error {
 	go func() {
 		log.Printf("INFO: HTTP server started on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("listen: %s\n", zap.Error(err))
+			logger.Error("server listen error", zap.Error(err))
 		}
 	}()
 

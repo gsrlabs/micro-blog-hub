@@ -7,9 +7,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
-func NewMongoCLient(parent context.Context, host, port, db string) (*mongo.Client, error) {
+func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port, db string) (*mongo.Client, error) {
 
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
     defer cancel()
