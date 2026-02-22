@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/model"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/repository"
 	"go.uber.org/zap"
@@ -30,11 +29,18 @@ type AuthService interface {
 type authService struct {
 	repo   repository.AuthRepository
 	logger *zap.Logger
-	cfg    *config.Config
+	jwtSecret    string
+	jwtExpirationHours time.Duration
 }
 
-func NewAuthService(repo repository.AuthRepository, logger *zap.Logger, cfg *config.Config) AuthService {
-	return &authService{repo: repo, logger: logger, cfg: cfg}
+func NewAuthService(
+	repo repository.AuthRepository,
+	logger *zap.Logger,
+	//cfg *config.Config,
+	jwtSecret string, 
+	jwtExpirationHours time.Duration,
+) AuthService {
+	return &authService{repo: repo, logger: logger, jwtSecret: jwtSecret, jwtExpirationHours: jwtExpirationHours}
 }
 
 func (s *authService) Register(ctx context.Context, req *model.CreateUserRequest) (uuid.UUID, error) {
@@ -69,8 +75,8 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 		s.logger.Warn("login failed: user not found", zap.String("email", req.Email))
 		return "", fmt.Errorf("invalid credentials")
 	}
-
-	if s.cfg.JWT.Secret == "" {
+	
+	if s.jwtSecret == "" {
 		s.logger.Error("jwt secret is empty")
 		return "", fmt.Errorf("failed to generate token")
 	}
@@ -83,7 +89,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 	}
 
 	// 3. Генерируем JWT токен
-	expirationTime := time.Now().Add(time.Duration(s.cfg.JWT.ExpirationHours) * time.Hour)
+	expirationTime := time.Now().Add(time.Duration(s.jwtExpirationHours) * time.Hour)
 
 	claims := &model.UserClaims{
 		UserID:   user.ID,
@@ -98,7 +104,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (strin
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Подписываем токен секретным ключом
-	tokenString, err := token.SignedString([]byte(s.cfg.JWT.Secret))
+	tokenString, err := token.SignedString([]byte(s.jwtSecret))
 	if err != nil {
 		s.logger.Error("failed to generate token", zap.Error(err))
 		return "", fmt.Errorf("failed to generate token")

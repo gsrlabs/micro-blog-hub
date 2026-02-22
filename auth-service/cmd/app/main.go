@@ -64,10 +64,21 @@ func run(ctx context.Context) error {
 	authRepo := repository.NewAuthRepository(database.Pool, logger)
 
 	// 3️⃣ Service
-	authService := service.NewAuthService(authRepo, logger, cfg)
+	authService := service.NewAuthService(
+		authRepo,
+		logger,
+		cfg.JWT.Secret,
+		time.Duration(cfg.JWT.ExpirationHours),
+	)
 
 	// 4️⃣ Handler
-	h := handler.NewAuthHandler(authService, logger, cfg)
+	h := handler.NewAuthHandler(
+		authService,
+		logger,
+		cfg.App.Mode,
+		cfg.JWT.Secret,
+		time.Duration(cfg.JWT.ExpirationHours),
+	)
 
 	// Устанавливаем режим работы Gin
 	if cfg.App.Mode == "release" {

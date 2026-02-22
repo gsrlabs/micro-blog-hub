@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -86,7 +87,8 @@ func TestAuthHandler_SignUp(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	r := gin.New()
 	r.POST("/signup", h.SignUp)
@@ -112,7 +114,13 @@ func TestAuthHandler_SignIn(t *testing.T) {
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
 	cfg := &config.Config{JWT: config.JWTConfig{Secret: "secret", ExpirationHours: 1}}
-	h := NewAuthHandler(mockSvc, logger, cfg)
+	h := NewAuthHandler(
+		mockSvc, 
+		logger, 
+		"", 
+		cfg.JWT.Secret,  
+		time.Duration(cfg.JWT.ExpirationHours),
+	)
 
 	r := gin.New()
 	r.POST("/signin", h.SignIn)
@@ -136,7 +144,7 @@ func TestAuthHandler_GetProfile(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, ""," ", 0)
 
 	r := gin.New()
 	r.GET("/profile", h.GetProfile)
@@ -164,7 +172,7 @@ func TestAuthHandler_ChangeProfile(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	id := uuid.New()
 
@@ -193,7 +201,7 @@ func TestAuthHandler_GetUsers(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	users := []*model.User{
 		{ID: uuid.New(), Username: "u1", Email: "e1@test.com"},
@@ -218,7 +226,7 @@ func TestAuthHandler_ChangeEmail(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{}) // ✅ через конструктор
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)// ✅ через конструктор
 
 	id := uuid.New()
 	mockSvc.On("ChangeEmail", mock.Anything, id, mock.Anything).Return(nil)
@@ -245,7 +253,7 @@ func TestAuthHandler_ChangePassword(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	id := uuid.New()
 	mockSvc.On("ChangePassword", mock.Anything, id, mock.Anything).Return(nil)
@@ -270,7 +278,7 @@ func TestAuthHandler_Delete(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	id := uuid.New()
 	mockSvc.On("Delete", mock.Anything, id).Return(nil)
@@ -293,7 +301,7 @@ func TestAuthHandler_GetByID(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	id := uuid.New()
 	user := &model.User{ID: id, Username: "user1", Email: "email@test.com"}
@@ -317,7 +325,7 @@ func TestAuthHandler_GetByEmail(t *testing.T) {
 
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	email := "email@test.com"
 	user := &model.User{ID: uuid.New(), Username: "user1", Email: email}
@@ -339,7 +347,7 @@ func TestAuthHandler_SignUp_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	r := gin.New()
 	r.POST("/signup", h.SignUp)
@@ -364,7 +372,8 @@ func TestAuthHandler_SignIn_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{App: config.AppConfig{Mode: "release"}})
+
+	h := NewAuthHandler(mockSvc, logger, "release", "", 0)
 
 	r := gin.New()
 	r.POST("/signin", h.SignIn)
@@ -389,7 +398,7 @@ func TestAuthHandler_GetByID_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	r := gin.New()
 	r.GET("/users/:id", h.GetByID)
@@ -409,7 +418,7 @@ func TestAuthHandler_GetByID_Errors(t *testing.T) {
 func TestAuthHandler_AuthMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret"
-	h := &AuthHandler{cfg: &config.Config{JWT: config.JWTConfig{Secret: secret}}}
+	h := &AuthHandler{secret: secret}
 	r := gin.New()
 	r.GET("/protected", h.AuthMiddleware, func(c *gin.Context) { c.Status(http.StatusOK) })
 
@@ -440,7 +449,7 @@ func TestAuthHandler_ChangeProfile_Validation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 
 	r := gin.New()
 	id := uuid.New()
@@ -464,7 +473,7 @@ func TestAuthHandler_ChangeProfile_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
 	logger := zap.NewNop()
-	h := NewAuthHandler(mockSvc, logger, &config.Config{})
+	h := NewAuthHandler(mockSvc, logger, "", "", 0)
 	id := uuid.New()
 
 	t.Run("Unauthorized", func(t *testing.T) {
@@ -492,7 +501,7 @@ func TestAuthHandler_ChangeProfile_Errors(t *testing.T) {
 
 	t.Run("Duplicate Username", func(t *testing.T) {
 		mockSvc := &mockAuthService{} // новый мок
-		h := NewAuthHandler(mockSvc, logger, &config.Config{})
+		h := NewAuthHandler(mockSvc, logger, "", "", 0)
 		mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrDuplicateUsername)
 
 		w := httptest.NewRecorder()
@@ -511,7 +520,7 @@ func TestAuthHandler_ChangeProfile_Errors(t *testing.T) {
 
 	t.Run("User Not Found", func(t *testing.T) {
 		mockSvc := &mockAuthService{} // снова новый мок
-		h := NewAuthHandler(mockSvc, logger, &config.Config{})
+		h := NewAuthHandler(mockSvc, logger, "", "", 0)
 		mockSvc.On("ChangeProfile", mock.Anything, id, mock.Anything).Return(repository.ErrNotFound)
 
 		w := httptest.NewRecorder()
@@ -530,7 +539,7 @@ func TestAuthHandler_ChangeProfile_Errors(t *testing.T) {
 func TestAuthHandler_ChangeEmail_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
-	h := NewAuthHandler(mockSvc, zap.NewNop(), &config.Config{})
+	h := NewAuthHandler(mockSvc, zap.NewNop(), "", "", 0)
 	id := uuid.New()
 
 	t.Run("Validation Failed", func(t *testing.T) {
@@ -565,7 +574,7 @@ func TestAuthHandler_ChangeEmail_Errors(t *testing.T) {
 func TestAuthHandler_ChangePassword_Errors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockAuthService{}
-	h := NewAuthHandler(mockSvc, zap.NewNop(), &config.Config{})
+	h := NewAuthHandler(mockSvc, zap.NewNop(), "", "", 0)
 	id := uuid.New()
 
 	t.Run("Validation Failed", func(t *testing.T) {

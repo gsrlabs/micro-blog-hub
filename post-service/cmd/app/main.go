@@ -16,21 +16,20 @@ import (
 	"github.com/gsrlabs/micro-blog-hub/post-service/internal/db"
 	"github.com/gsrlabs/micro-blog-hub/post-service/internal/handler"
 	"github.com/gsrlabs/micro-blog-hub/post-service/internal/logger"
+	//"github.com/gsrlabs/micro-blog-hub/post-service/internal/repository"
 	"go.uber.org/zap"
 )
 
 const configPath = "config/config.yml"
 
-
-func main(){
+func main() {
 	ctx := context.Background()
-	if err := run(ctx); err != nil{
+	if err := run(ctx); err != nil {
 		log.Fatalf("application error: %v", err)
 	}
 }
 
-
-func run(ctx context.Context) error{
+func run(ctx context.Context) error {
 
 	log.Printf("INFO: starting application")
 
@@ -54,25 +53,41 @@ func run(ctx context.Context) error{
 	}()
 
 	//Mongo
-	mongoClient, err := db.NewMongoCLient(ctx, logger, cfg.Mongo.Host, cfg.Mongo.Port, cfg.Mongo.DB)
+	database, err := db.NewMongoCLient(ctx,
+		logger,
+		cfg.Mongo.Host,
+		cfg.Mongo.Port,
+	)
 
 	if err != nil {
 		log.Fatalf("Mongo connection failed: %v", err)
 	}
 
-	defer mongoClient.Disconnect(ctx)
-
-	logger.Info("Conected to mongo")
+	defer func() {
+		if err := database.Disconnect(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to disconnect mongodb: %v\n", err)
+		}
+	}()
 
 	//Redis
-	redisClient, err := cache.NewRedisClient(ctx, logger, cfg.Redis.Host, cfg.Redis.Port)
+	redisClient, err := cache.NewRedisClient(
+		ctx,
+		logger,
+		cfg.Redis.Host,
+		cfg.Redis.Port,
+	)
 	if err != nil {
 		log.Fatalf("Redis connection failed: %v", err)
 	}
 
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to disconnect redis: %v\n", err)
+		}
+	}()
 
-	logger.Info("Connectinon to Redis")
+	// Repository
+	//postRepo := repository.NewPostRepository(database, cfg.Mongo.DB, logger)
 
 	//HTTP
 	r := gin.New()
@@ -89,7 +104,7 @@ func run(ctx context.Context) error{
 	}
 
 	go func() {
-		logger.Info("HTTP server started" , zap.String("URL", server.Addr))
+		logger.Info("HTTP server started", zap.String("URL", server.Addr))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server listen error", zap.Error(err))
 
@@ -102,7 +117,7 @@ func run(ctx context.Context) error{
 
 	logger.Info("Shutting down server...")
 
-	ctxShoutdown, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctxShoutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctxShoutdown); err != nil {
@@ -113,4 +128,3 @@ func run(ctx context.Context) error{
 
 	return nil
 }
-

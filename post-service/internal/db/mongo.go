@@ -10,7 +10,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port, db string) (*mongo.Client, error) {
+
+
+func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port string) (*mongo.Client, error) {
 
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
     defer cancel()
@@ -26,7 +28,7 @@ func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port, db s
 		return nil, err
 	}
 
-
+	logger.Info("Conected to mongo")
 	return client, nil
 
 }

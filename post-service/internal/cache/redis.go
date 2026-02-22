@@ -21,7 +21,9 @@ func NewRedisClient(parent context.Context, logger *zap.Logger, host, port strin
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-
+	
+	logger.Info("Connectinon to Redis")
+	
 	return rdb, nil
-
 }
+

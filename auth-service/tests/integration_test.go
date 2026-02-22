@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"io"
 
@@ -113,8 +114,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, func()) {
 	require.NoError(t, err)
 
 	repo := repository.NewAuthRepository(database.Pool, logger)
-	svc := service.NewAuthService(repo, logger, cfg)
-	h := handler.NewAuthHandler(svc, logger, cfg)
+	svc := service.NewAuthService(repo, logger, cfg.JWT.Secret, time.Duration(cfg.JWT.ExpirationHours))
+	h := handler.NewAuthHandler(svc, logger, cfg.App.Mode, cfg.JWT.Secret, time.Duration(cfg.JWT.ExpirationHours))
 
 	r := gin.Default()
 

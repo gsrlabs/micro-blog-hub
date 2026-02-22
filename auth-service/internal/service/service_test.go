@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/model"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/repository"
 	"github.com/stretchr/testify/assert"
@@ -70,20 +69,13 @@ func (m *MockAuthRepository) GetUsers(ctx context.Context, limit, offset int) ([
 	return args.Get(0).([]*model.User), args.Error(1)
 }
 
-func setup(t *testing.T) (*authService, *MockAuthRepository, *config.Config) {
+func setup(t *testing.T) (*authService, *MockAuthRepository) {
 	mockRepo := new(MockAuthRepository)
-
-	cfg := &config.Config{
-		JWT: config.JWTConfig{
-			Secret:          "test-secret",
-			ExpirationHours: 24,
-		},
-	}
-
 	logger := zap.NewNop()
-
-	svc := NewAuthService(mockRepo, logger, cfg).(*authService)
-	return svc, mockRepo, cfg
+	secret := "test-secret"
+	jwtExpirationHours := time.Duration(24)
+	svc := NewAuthService(mockRepo, logger, secret, jwtExpirationHours).(*authService)
+	return svc, mockRepo
 }
 
 ////////////////////////////////////////////////////////////
@@ -91,7 +83,7 @@ func setup(t *testing.T) (*authService, *MockAuthRepository, *config.Config) {
 ////////////////////////////////////////////////////////////
 
 func TestRegister(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	req := &model.CreateUserRequest{
@@ -116,7 +108,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestRegister_RepoError(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	repo.On("Create", ctx, mock.Anything).
@@ -135,7 +127,7 @@ func TestRegister_RepoError(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestLogin(t *testing.T) {
-	svc, repo, cfg := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
@@ -159,7 +151,7 @@ func TestLogin(t *testing.T) {
 
 	parsed, err := jwt.ParseWithClaims(token, &model.UserClaims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(cfg.JWT.Secret), nil
+			return []byte("test-secret"), nil
 		})
 
 	assert.NoError(t, err)
@@ -176,7 +168,7 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
@@ -194,7 +186,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 }
 
 func TestLogin_UserNotFound(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	repo.On("GetByEmail", ctx, "x").
@@ -209,11 +201,10 @@ func TestLogin_UserNotFound(t *testing.T) {
 }
 
 func TestLogin_TokenSignError(t *testing.T) {
-	svc, repo, cfg := setup(t)
-	ctx := context.Background()
+	svc, mockRepo := setup(t)
+	svc.jwtSecret = ""
 
-	// Ломаем secret
-	cfg.JWT.Secret = ""
+	ctx := context.Background()
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.DefaultCost)
 	user := &model.User{
@@ -223,8 +214,7 @@ func TestLogin_TokenSignError(t *testing.T) {
 		Password: string(hash),
 	}
 
-	repo.On("GetByEmail", ctx, user.Email).
-		Return(user, nil).Once()
+	mockRepo.On("GetByEmail", ctx, user.Email).Return(user, nil).Once()
 
 	token, err := svc.Login(ctx, &model.LoginRequest{
 		Email:    user.Email,
@@ -241,7 +231,7 @@ func TestLogin_TokenSignError(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestGetByID(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -257,7 +247,7 @@ func TestGetByID(t *testing.T) {
 }
 
 func TestGetByID_Error(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -272,7 +262,7 @@ func TestGetByID_Error(t *testing.T) {
 }
 
 func TestGetByEmail(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	user := &model.User{Email: "a"}
@@ -287,7 +277,7 @@ func TestGetByEmail(t *testing.T) {
 }
 
 func TestGetByEmail_Error(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	repo.On("GetByEmail", ctx, "x").
@@ -304,7 +294,7 @@ func TestGetByEmail_Error(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestChangeProfile(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -318,7 +308,7 @@ func TestChangeProfile(t *testing.T) {
 }
 
 func TestChangeProfile_Errors(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -349,7 +339,7 @@ func TestChangeProfile_Errors(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestChangeEmail(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -388,7 +378,7 @@ func TestChangeEmail(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestChangePassword(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -423,7 +413,7 @@ func TestChangePassword(t *testing.T) {
 }
 
 func TestChangePassword_WrongOldPassword(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -443,7 +433,7 @@ func TestChangePassword_WrongOldPassword(t *testing.T) {
 }
 
 func TestChangePassword_UpdateError(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -470,7 +460,7 @@ func TestChangePassword_UpdateError(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestDelete(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -482,7 +472,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDelete_Error(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 	id := uuid.New()
 
@@ -498,7 +488,7 @@ func TestDelete_Error(t *testing.T) {
 ////////////////////////////////////////////////////////////
 
 func TestGetUsers(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	users := []*model.User{{ID: uuid.New()}}
@@ -514,7 +504,7 @@ func TestGetUsers(t *testing.T) {
 }
 
 func TestGetUsers_Error(t *testing.T) {
-	svc, repo, _ := setup(t)
+	svc, repo := setup(t)
 	ctx := context.Background()
 
 	repo.On("GetUsers", ctx, 10, 0).
