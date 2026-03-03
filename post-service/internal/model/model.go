@@ -6,6 +6,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type PostStatus string
+
+const (
+	PostStatusDraft     PostStatus = "draft"
+	PostStatusPublished PostStatus = "published"
+	PostStatusHidden    PostStatus = "hidden"
+	PostStatusDeleted   PostStatus = "deleted"
+)
+
 type Post struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
 	AuthorID      string             `bson:"author_id"`
@@ -23,6 +32,25 @@ type Post struct {
 	Status        PostStatus         `bson:"status"`
 }
 
+type PaginatedPosts struct {
+	Items []*Post
+	Total int64
+	Page  int64
+	Limit int64
+}
+
+type PaginatedPostsWithLikeState struct {
+	Items []*PostWithLikeState `json:"items"`
+	Total int64                `json:"total"`
+	Page  int64                `json:"page"`
+	Limit int64                `json:"limit"`
+}
+
+type PostWithLikeState struct {
+	Post    *Post
+	IsLiked bool
+}
+
 type PostLike struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	PostID    primitive.ObjectID `bson:"post_id"`
@@ -31,19 +59,28 @@ type PostLike struct {
 }
 
 type Comment struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	PostID    primitive.ObjectID `bson:"post_id"`
-	AuthorID  string             `bson:"author_id"`
-	Content   string             `bson:"content"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
+	ID         primitive.ObjectID `bson:"_id,omitempty"`
+	PostID     primitive.ObjectID `bson:"post_id"`
+	AuthorID   string             `bson:"author_id"`
+	Content    string             `bson:"content"`
+	LikesCount int64              `bson:"likes_count"`
+	CreatedAt  time.Time          `bson:"created_at"`
+	UpdatedAt  time.Time          `bson:"updated_at"`
 }
 
-type PostStatus string
+type ListCommentsResult struct {
+	Comments   []*Comment
+	TotalCount int64
+}
 
-const (
-	PostStatusDraft     PostStatus = "draft"
-	PostStatusPublished PostStatus = "published"
-	PostStatusHidden    PostStatus = "hidden"
-	PostStatusDeleted   PostStatus = "deleted"
-)
+type CommentLike struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	CommentID primitive.ObjectID `bson:"comment_id"`
+	UserID    string             `bson:"user_id"`
+	CreatedAt time.Time          `bson:"created_at"`
+}
+
+type CommentWithLikeState struct {
+	Comment *Comment `bson:"comment"`
+	IsLiked bool     `bson:"is_liked"`
+}

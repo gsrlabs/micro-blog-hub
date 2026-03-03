@@ -36,11 +36,16 @@ type authService struct {
 func NewAuthService(
 	repo repository.AuthRepository,
 	logger *zap.Logger,
-	//cfg *config.Config,
 	jwtSecret string, 
 	jwtExpirationHours time.Duration,
 ) AuthService {
-	return &authService{repo: repo, logger: logger, jwtSecret: jwtSecret, jwtExpirationHours: jwtExpirationHours}
+	return &authService{
+		repo: repo, 
+		logger: logger, 
+		jwtSecret: jwtSecret, 
+		jwtExpirationHours: 
+		jwtExpirationHours,
+	}
 }
 
 func (s *authService) Register(ctx context.Context, req *model.CreateUserRequest) (uuid.UUID, error) {

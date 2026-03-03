@@ -10,21 +10,19 @@ import (
 	"go.uber.org/zap"
 )
 
-
-
 func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port string) (*mongo.Client, error) {
 
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+	defer cancel()
 
 	uri := fmt.Sprintf("mongodb://%s:%s", host, port)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
-	if err := client.Ping(ctx, nil); err !=nil {
+	if err := client.Ping(ctx, nil); err != nil {
 		return nil, err
 	}
 
