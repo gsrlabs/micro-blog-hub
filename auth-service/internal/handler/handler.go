@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/model"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/repository"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/service"
@@ -15,18 +15,27 @@ import (
 )
 
 type AuthHandler struct {
-	service   service.AuthService
-	logger    *zap.Logger
-	validator *model.Validator
-	cfg       *config.Config
+	service            service.AuthService
+	logger             *zap.Logger
+	validator          *model.Validator
+	appMode            string
+	secret             string
+	jwtExpirationHours time.Duration
 }
 
-func NewAuthHandler(s service.AuthService, logger *zap.Logger, cfg *config.Config) *AuthHandler {
+func NewAuthHandler(
+	s service.AuthService,
+	logger *zap.Logger,
+	appMode string,
+	secret string,
+	jwtExpirationHours time.Duration) *AuthHandler {
 	return &AuthHandler{
-		service:   s,
-		logger:    logger,
-		validator: model.NewValidator(), // Инициализируем
-		cfg:       cfg,
+		service:            s,
+		logger:             logger,
+		validator:          model.NewValidator(), // Инициализируем
+		appMode:            appMode,
+		secret:             secret,
+		jwtExpirationHours: jwtExpirationHours,
 	}
 }
 
@@ -92,16 +101,16 @@ func (h *AuthHandler) SignIn(c *gin.Context) {
 	// Установка Cookie
 	// HttpOnly: true (JS не имеет доступа, защита от XSS)
 	// Secure: true (только HTTPS, включаем в проде)
-	isSecure := h.cfg.App.Mode == "release"
+	isSecure := h.appMode == "release"
 
 	c.SetCookie(
-		"token",                             // name
-		token,                               // value
-		int(h.cfg.JWT.ExpirationHours*3600), // maxAge (в секундах)
-		"/",                                 // path
-		"",                                  // domain (пустой = текущий хост)
-		isSecure,                            // secure
-		true,                                // httpOnly
+		"token",                   // name
+		token,                     // value
+		int(h.jwtExpirationHours), // maxAge (в секундах)
+		"/",                       // path
+		"",                        // domain (пустой = текущий хост)
+		isSecure,                  // secure
+		true,                      // httpOnly
 	)
 
 	// Возвращаем токен еще и в JSON (удобно для мобильных приложений)

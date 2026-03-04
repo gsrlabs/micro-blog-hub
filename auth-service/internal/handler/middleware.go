@@ -36,7 +36,7 @@ func (h *AuthHandler) AuthMiddleware(c *gin.Context) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(h.cfg.JWT.Secret), nil
+		return []byte(h.secret), nil
 	})
 
 	if err != nil || !token.Valid {

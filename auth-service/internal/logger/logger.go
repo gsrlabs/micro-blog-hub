@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func New(level string, mode string) (*zap.Logger, error) {
+func New(level, mode string) (*zap.Logger, error) {
 	// Определяем уровень логирования
 	var zapLevel zapcore.Level
 	if err := zapLevel.UnmarshalText([]byte(level)); err != nil {
@@ -32,7 +32,10 @@ func New(level string, mode string) (*zap.Logger, error) {
 	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapLevel)
 
 	// Создаем логгер (AddCaller добавляет имя файла и строку, где вызван лог)
-	logger := zap.New(core, zap.AddCaller())
+	logger := zap.New(core,
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+	)
 
 	return logger, nil
 }

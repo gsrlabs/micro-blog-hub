@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/config"
 	"github.com/gsrlabs/micro-blog-hub/auth-service/internal/model"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -40,7 +39,7 @@ func TestAuthMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret"
 	h := &AuthHandler{
-		cfg: &config.Config{JWT: config.JWTConfig{Secret: secret}},
+		secret: secret,
 	}
 
 	userID := uuid.New()
@@ -102,7 +101,7 @@ func TestAuthMiddleware(t *testing.T) {
 func TestAuthMiddleware_EdgeCases(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret"
-	h := &AuthHandler{cfg: &config.Config{JWT: config.JWTConfig{Secret: secret}}}
+	h := &AuthHandler{secret: secret}
 	userID := uuid.New()
 	username := "tester"
 

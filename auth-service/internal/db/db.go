@@ -18,7 +18,6 @@ import (
 // Database wraps the pgxpool.Pool to provide a unified database access point.
 type Database struct {
 	Pool   *pgxpool.Pool
-	Logger *zap.Logger
 }
 
 type dbLogConfig struct {
@@ -79,7 +78,7 @@ func Connect(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*Data
 	}
 
 	logger.Info("connected to database")
-	return &Database{Pool: pool, Logger: logger}, nil
+	return &Database{Pool: pool}, nil
 }
 
 func (d dbLogConfig) MarshalLogObject(enc zapcore.ObjectEncoder) error {

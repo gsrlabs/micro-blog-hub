@@ -7,25 +7,26 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
-func NewMongoCLient(parent context.Context, host, port, db string) (*mongo.Client, error) {
+func NewMongoCLient(parent context.Context, logger *zap.Logger, host, port string) (*mongo.Client, error) {
 
-	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+	defer cancel()
 
 	uri := fmt.Sprintf("mongodb://%s:%s", host, port)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
-	if err := client.Ping(ctx, nil); err !=nil {
+	if err := client.Ping(ctx, nil); err != nil {
 		return nil, err
 	}
 
-
+	logger.Info("Conected to mongo")
 	return client, nil
 
 }
